@@ -124,8 +124,6 @@ def main():
             for index in range(1, len(ping_measurements))
         ]
     )
-    LOGGER.info(f"ping {median_ping}")
-    LOGGER.info(f"jitter {ping_jitter}")
 
     download_measurements = []
     upload_measurements = []
@@ -141,11 +139,14 @@ def main():
         for _ in range(iterations):
             upload_measurements.append(upload(upload_size))
 
+    LOGGER.info(f"Ping {median_ping}")
+    LOGGER.info(f"Jitter {ping_jitter}")
+
     download_percentile = calculate_percentile(download_measurements, percentile)
-    LOGGER.info(f"download percentile {download_percentile}")
+    LOGGER.info(f"Download Percentile {download_percentile}")
 
     upload_percentile = calculate_percentile(upload_measurements, percentile)
-    LOGGER.info(f"upload percentile {upload_percentile}")
+    LOGGER.info(f"Upload Percentile {upload_percentile}")
 
     auth_dict = None
     if mqtt_username and mqtt_password:
@@ -159,6 +160,7 @@ def main():
             "upload_mbps": upload_percentile,
         }
     )
+    LOGGER.info(f"MQTT payload {json_payload}")
 
     send_mqtt_message(
         "speedtest",
