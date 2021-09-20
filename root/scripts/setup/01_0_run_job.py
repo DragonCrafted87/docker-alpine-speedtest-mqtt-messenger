@@ -203,7 +203,7 @@ def main():
         client_id="",
         keepalive=60,
         will=None,
-        auth=AUTH_DICT,
+        auth=auth_dict,
         tls=None,
         protocol=MQTTv311,
         transport="tcp",
