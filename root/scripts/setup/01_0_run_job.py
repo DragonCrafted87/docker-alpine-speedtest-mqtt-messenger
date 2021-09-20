@@ -14,7 +14,7 @@ from time import sleep
 from time import time
 
 from paho.mqtt.client import MQTTv311
-from paho.mqtt.publish import single as send_mqtt_message
+from paho.mqtt.publish import single as single_mqtt_message
 from ping3 import ping
 
 # Local Imports
@@ -47,6 +47,14 @@ CLOUDFLARE_ADAPTER = HTTPAdapter(max_retries=3)
 SESSION = Session()
 SESSION.mount("https://speed.cloudflare.com", CLOUDFLARE_ADAPTER)
 
+MQTT_SERVER = getenv("MQTT_SERVER", "localhost")
+MQTT_SERVER_PORT = int(getenv("MQTT_SERVER_PORT", "1883"))
+MQTT_USERNAME = getenv("MQTT_USERNAME", None)
+MQTT_PASSWORD = getenv("MQTT_PASSWORD", None)
+AUTH_DICT = None
+if MQTT_USERNAME and MQTT_PASSWORD:
+    AUTH_DICT = {"username": MQTT_USERNAME, "password": MQTT_PASSWORD}
+
 
 def download(bytes):
     try:
@@ -61,7 +69,6 @@ def download(bytes):
     except ConnectionError:
         measurement = 0
 
-    LOGGER.info(measurement)
     return measurement
 
 
@@ -79,7 +86,6 @@ def upload(bytes):
     except ConnectionError:
         measurement = 0
 
-    LOGGER.info(measurement)
     return measurement
 
 
@@ -131,7 +137,10 @@ def calculate_download_percentile(percentile):
     download_iterations = list(
         map(int, getenv("DOWNLOAD_ITERATIONS", "10,8,6,4,2").split(","))
     )
+
     download_measurements = run_speed_test(download_iterations, download)
+    LOGGER.info(f"Download {download_measurements}")
+
     return calculate_percentile(download_measurements, percentile)
 
 
@@ -141,15 +150,33 @@ def calculate_upload_percentile(percentile):
     )
 
     upload_measurements = run_speed_test(upload_iterations, upload)
+    LOGGER.info(f"Upload {upload_measurements}")
+
     return calculate_percentile(upload_measurements, percentile)
 
 
-def main():
-    mqtt_server = getenv("MQTT_SERVER", "localhost")
-    mqtt_server_port = int(getenv("MQTT_SERVER_PORT", "1883"))
-    mqtt_username = getenv("MQTT_USERNAME", None)
-    mqtt_password = getenv("MQTT_PASSWORD", None)
+def send_mqtt_message(topic, payload_value):
 
+    LOGGER.info(f"MQTT {topic} payload {payload_value}")
+
+    single_mqtt_message(
+        topic,
+        payload=payload_value,
+        qos=0,
+        retain=True,
+        hostname=MQTT_SERVER,
+        port=MQTT_SERVER_PORT,
+        client_id="",
+        keepalive=60,
+        will=None,
+        auth=AUTH_DICT,
+        tls=None,
+        protocol=MQTTv311,
+        transport="tcp",
+    )
+
+
+def main():
     percentile = int(getenv("PERCENTILE", "90"))
 
     median_ping, ping_jitter = calculate_ping()
@@ -161,10 +188,6 @@ def main():
     LOGGER.info(f"Download Percentile {download_percentile}")
     LOGGER.info(f"Upload Percentile {upload_percentile}")
 
-    auth_dict = None
-    if mqtt_username and mqtt_password:
-        auth_dict = {"username": mqtt_username, "password": mqtt_password}
-
     time_string_payload = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     json_payload = dump_to_json(
         {
@@ -174,40 +197,9 @@ def main():
             "upload_mbps": upload_percentile,
         }
     )
-    LOGGER.info(f"MQTT speedtest payload {time_string_payload}")
-    LOGGER.info(f"MQTT speedtest/attributes payload {json_payload}")
 
-    send_mqtt_message(
-        "speedtest",
-        payload=time_string_payload,
-        qos=0,
-        retain=True,
-        hostname=mqtt_server,
-        port=mqtt_server_port,
-        client_id="",
-        keepalive=60,
-        will=None,
-        auth=auth_dict,
-        tls=None,
-        protocol=MQTTv311,
-        transport="tcp",
-    )
-
-    send_mqtt_message(
-        "speedtest/attributes",
-        payload=json_payload,
-        qos=0,
-        retain=True,
-        hostname=mqtt_server,
-        port=mqtt_server_port,
-        client_id="",
-        keepalive=60,
-        will=None,
-        auth=auth_dict,
-        tls=None,
-        protocol=MQTTv311,
-        transport="tcp",
-    )
+    send_mqtt_message("speedtest", time_string_payload)
+    send_mqtt_message("speedtest/attributes", json_payload)
 
 
 if __name__ == "__main__":
