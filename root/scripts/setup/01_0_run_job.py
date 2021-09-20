@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
+from datetime import datetime
 from json import dumps as dump_to_json
 from math import ceil as ceiling
 
@@ -82,33 +83,20 @@ def upload(bytes):
     return measurement
 
 
-def calculate_percentile(data, percentile):
-    sorted_data = sorted(data)
-    n = len(sorted_data)
-    p = n * percentile / 100
-    if p.is_integer():
-        return_value = sorted_data[int(p)]
-    else:
-        p = int(p) - 1
-        return_value = (sorted_data[p] + sorted_data[p + 1]) / 2
-    return return_value
+def run_speed_test(iterations_list, operation):
+    measurements = []
+
+    for index in range(len(iterations_list)):
+        size = MEASUREMENT_SIZES[index]
+        iterations = iterations_list[index]
+        for _ in range(iterations):
+            measurements.append(operation(size))
+
+    return measurements
 
 
-def main():
-    mqtt_server = getenv("MQTT_SERVER", "localhost")
-    mqtt_server_port = int(getenv("MQTT_SERVER_PORT", "1883"))
-    mqtt_username = getenv("MQTT_USERNAME", None)
-    mqtt_password = getenv("MQTT_PASSWORD", None)
-
+def calculate_ping():
     ping_count = int(getenv("PING_COUNT", "20"))
-    percentile = int(getenv("PERCENTILE", "90"))
-
-    download_iterations = list(
-        map(int, getenv("DOWNLOAD_ITERATIONS", "10,8,6,4,2").split(","))
-    )
-    upload_iterations = list(
-        map(int, getenv("UPLOAD_ITERATIONS", "8,6,4,2").split(","))
-    )
 
     ping_measurements = []
     for _ in range(ping_count):
@@ -124,34 +112,60 @@ def main():
             for index in range(1, len(ping_measurements))
         ]
     )
+    return (median_ping, ping_jitter)
 
-    download_measurements = []
-    upload_measurements = []
-    for index in range(len(download_iterations)):
-        download_size = MEASUREMENT_SIZES[index]
-        iterations = download_iterations[index]
-        for _ in range(iterations):
-            download_measurements.append(download(download_size))
 
-    for index in range(len(upload_iterations)):
-        upload_size = MEASUREMENT_SIZES[index]
-        iterations = upload_iterations[index]
-        for _ in range(iterations):
-            upload_measurements.append(upload(upload_size))
+def calculate_percentile(data, percentile):
+    sorted_data = sorted(data)
+    n = len(sorted_data)
+    p = n * percentile / 100
+    if p.is_integer():
+        return_value = sorted_data[int(p)]
+    else:
+        p = int(p) - 1
+        return_value = (sorted_data[p] + sorted_data[p + 1]) / 2
+    return return_value
+
+
+def calculate_download_percentile(percentile):
+    download_iterations = list(
+        map(int, getenv("DOWNLOAD_ITERATIONS", "10,8,6,4,2").split(","))
+    )
+    download_measurements = run_speed_test(download_iterations, download)
+    return calculate_percentile(download_measurements, percentile)
+
+
+def calculate_upload_percentile(percentile):
+    upload_iterations = list(
+        map(int, getenv("UPLOAD_ITERATIONS", "8,6,4,2").split(","))
+    )
+
+    upload_measurements = run_speed_test(upload_iterations, upload)
+    return calculate_percentile(upload_measurements, percentile)
+
+
+def main():
+    mqtt_server = getenv("MQTT_SERVER", "localhost")
+    mqtt_server_port = int(getenv("MQTT_SERVER_PORT", "1883"))
+    mqtt_username = getenv("MQTT_USERNAME", None)
+    mqtt_password = getenv("MQTT_PASSWORD", None)
+
+    percentile = int(getenv("PERCENTILE", "90"))
+
+    median_ping, ping_jitter = calculate_ping()
+    download_percentile = calculate_download_percentile(percentile)
+    upload_percentile = calculate_upload_percentile(percentile)
 
     LOGGER.info(f"Ping {median_ping}")
     LOGGER.info(f"Jitter {ping_jitter}")
-
-    download_percentile = calculate_percentile(download_measurements, percentile)
     LOGGER.info(f"Download Percentile {download_percentile}")
-
-    upload_percentile = calculate_percentile(upload_measurements, percentile)
     LOGGER.info(f"Upload Percentile {upload_percentile}")
 
     auth_dict = None
     if mqtt_username and mqtt_password:
         auth_dict = {"username": mqtt_username, "password": mqtt_password}
 
+    time_string_payload = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     json_payload = dump_to_json(
         {
             "median_ping": median_ping,
@@ -160,11 +174,12 @@ def main():
             "upload_mbps": upload_percentile,
         }
     )
-    LOGGER.info(f"MQTT payload {json_payload}")
+    LOGGER.info(f"MQTT speedtest payload {time_string_payload}")
+    LOGGER.info(f"MQTT speedtest/attributes payload {json_payload}")
 
     send_mqtt_message(
         "speedtest",
-        payload=json_payload,
+        payload=time_string_payload,
         qos=0,
         retain=False,
         hostname=mqtt_server,
@@ -173,6 +188,22 @@ def main():
         keepalive=60,
         will=None,
         auth=auth_dict,
+        tls=None,
+        protocol=MQTTv311,
+        transport="tcp",
+    )
+
+    send_mqtt_message(
+        "speedtest/attributes",
+        payload=json_payload,
+        qos=0,
+        retain=False,
+        hostname=MQTT_SERVER,
+        port=MQTT_SERVER_PORT,
+        client_id="",
+        keepalive=60,
+        will=None,
+        auth=AUTH_DICT,
         tls=None,
         protocol=MQTTv311,
         transport="tcp",
