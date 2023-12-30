@@ -156,7 +156,6 @@ def calculate_upload_percentile(percentile):
 
 
 def send_mqtt_message(topic, payload_value):
-
     LOGGER.info(f"MQTT {topic} payload {payload_value}")
 
     single_mqtt_message(

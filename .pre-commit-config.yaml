@@ -1,6 +1,6 @@
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.0.1
+    rev: v4.5.0
     hooks:
     -   id: trailing-whitespace
     -   id: end-of-file-fixer
@@ -18,7 +18,7 @@ repos:
         -   --indent
         -   '4'
 -   repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
-    rev: v2.1.0
+    rev: v2.12.0
     hooks:
     -   id: pretty-format-yaml
         args:
@@ -26,7 +26,7 @@ repos:
         -   --indent
         -   '4'
 -   repo: https://github.com/executablebooks/mdformat
-    rev: 0.7.7
+    rev: 0.7.17
     hooks:
     -   id: mdformat
         args:
@@ -36,16 +36,16 @@ repos:
         -   mdformat-gfm
         -   mdformat-black
 -   repo: https://github.com/adrienverge/yamllint
-    rev: v1.26.1
+    rev: v1.33.0
     hooks:
     -   id: yamllint
         exclude: ^.github/
 -   repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.27.1
+    rev: v0.38.0
     hooks:
     -   id: markdownlint
 -   repo: https://github.com/lovesegfault/beautysh
-    rev: v6.1.0
+    rev: v6.2.1
     hooks:
     -   id: beautysh
         types: [bash, shell]
@@ -53,16 +53,16 @@ repos:
         -   --indent-size
         -   '4'
 -   repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.7.2.1
+    rev: v0.9.0.6
     hooks:
     -   id: shellcheck
 -   repo: https://github.com/psf/black
-    rev: 21.6b0
+    rev: 23.12.1
     hooks:
     -   id: black
         language_version: python3
 -   repo: https://github.com/pycqa/isort
-    rev: 5.8.0
+    rev: 5.13.2
     hooks:
     -   id: isort
         args:
@@ -71,7 +71,7 @@ repos:
         -   --filter-files
         -   --force-single-line-imports
 -   repo: https://github.com/lovesegfault/beautysh
-    rev: v6.1.0
+    rev: v6.2.1
     hooks:
     -   id: beautysh
         types: [bash, shell]
@@ -79,6 +79,6 @@ repos:
         -   --indent-size
         -   '4'
 -   repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.7.2.1
+    rev: v0.9.0.6
     hooks:
     -   id: shellcheck
