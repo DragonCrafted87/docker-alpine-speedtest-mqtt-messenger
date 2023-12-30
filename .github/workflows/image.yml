@@ -33,7 +33,9 @@ jobs:
                 tags: |
                     type=edge,branch=main
                     type=schedule,pattern={{date 'YYYY[w]WW[d]]d'}}
-                    type=match,pattern=v(.*),group=1
+                    type=semver,pattern={{version}}
+                    type=semver,pattern={{major}}.{{minor}}
+                    type=semver,pattern={{major}}
                     type=sha
         -   name: Set up QEMU
             uses: docker/setup-qemu-action@v3
