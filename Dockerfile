@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM dragoncrafted87/alpine:3.19
+FROM ghcr.io/dragoncrafted87/alpine:3.19
 
 ARG BUILD_DATE
 ARG VCS_REF
@@ -15,12 +15,16 @@ LABEL org.label-schema.build-date=$BUILD_DATE \
 COPY root/. /
 
 RUN ash <<eot
+    set -e
+
     apk add --no-cache --update \
 
-    pip3 --no-cache-dir install \
-        ping3 \
-        paho-mqtt \
-        requests \
+    pip3 --no-cache-dir \
+        install \
+            --break-system-packages  \
+            ping3 \
+            paho-mqtt \
+            requests \
 
     rm -rf /tmp/*
     rm -rf /var/cache/apk/*
