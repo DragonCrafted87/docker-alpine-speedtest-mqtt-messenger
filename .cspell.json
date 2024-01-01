@@ -1,0 +1,48 @@
+{
+    "dictionaries": [
+        "en_US",
+        "companies",
+        "softwareTerms",
+        "bash",
+        "filetypes",
+        "main",
+        "misc",
+        "python-extra",
+        "python",
+        "shell",
+        "github",
+        "docker"
+    ],
+    "dictionaryDefinitions": [
+        {
+            "addWords": true,
+            "name": "main",
+            "path": "./.cspell/main.dict"
+        },
+        {
+            "name": "python-extra",
+            "path": "./.cspell/python.dict"
+        },
+        {
+            "name": "shell",
+            "path": "./.cspell/shell.dict"
+        },
+        {
+            "name": "docker",
+            "path": "./.cspell/docker.dict"
+        },
+        {
+            "name": "github",
+            "path": "./.cspell/github.dict"
+        }
+    ],
+    "flagWords": [
+        "hte"
+    ],
+    "language": "en",
+    "minWordLength": 3,
+    "version": "0.2",
+    "words": [
+        "githubusercontent"
+    ]
+}

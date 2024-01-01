@@ -17,7 +17,7 @@ COPY root/. /
 RUN ash <<eot
     set -e
 
-    apk add --no-cache --update \
+    apk upgrade
 
     pip3 --no-cache-dir \
         install \

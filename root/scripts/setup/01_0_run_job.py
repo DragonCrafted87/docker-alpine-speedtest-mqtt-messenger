@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
+# pylint: disable=invalid-name
 
 from datetime import datetime
 from json import dumps as dump_to_json
-from math import ceil as ceiling
 
 # System Imports
 from os import getenv
@@ -13,6 +13,7 @@ from statistics import median
 from time import sleep
 from time import time
 
+# pylint: disable=import-error
 from paho.mqtt.client import MQTTv311
 from paho.mqtt.publish import single as single_mqtt_message
 from ping3 import ping
@@ -25,10 +26,13 @@ from requests import Session
 from requests import get as requests_get
 from requests import post as requests_post
 from requests.adapters import HTTPAdapter
-from requests.exceptions import ConnectionError
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
+# pylint: enable=import-error
+# pylint: enable=invalid-name
 
 LOGGER = create_logger(PurePath(__file__).stem)
-SLEEP_BETWEEN_MEASURMENTS = 5
+SLEEP_BETWEEN_MEASUREMENTS = 5
 MEASUREMENT_SIZES = [
     100000,
     1000000,
@@ -56,34 +60,34 @@ if MQTT_USERNAME and MQTT_PASSWORD:
     AUTH_DICT = {"username": MQTT_USERNAME, "password": MQTT_PASSWORD}
 
 
-def download(bytes):
+def download(download_bytes):
     try:
         start_time = time()
-        _ = requests_get(f"https://speed.cloudflare.com/__down?bytes={bytes}")
+        _ = requests_get(f"https://speed.cloudflare.com/__down?bytes={download_bytes}")
         finish_time = time()
 
-        sleep(SLEEP_BETWEEN_MEASURMENTS)
+        sleep(SLEEP_BETWEEN_MEASUREMENTS)
 
         duration = finish_time - start_time
-        measurement = (bytes / duration) / 100000
-    except ConnectionError:
+        measurement = (download_bytes / duration) / 100000
+    except RequestsConnectionError:
         measurement = 0
 
     return measurement
 
 
-def upload(bytes):
+def upload(upload_bytes):
     try:
-        upload_data = bytearray(bytes)
+        upload_data = bytearray(upload_bytes)
         start_time = time()
-        _ = requests_post(f"https://speed.cloudflare.com/__up", data=upload_data)
+        _ = requests_post("https://speed.cloudflare.com/__up", data=upload_data)
         finish_time = time()
 
-        sleep(SLEEP_BETWEEN_MEASURMENTS)
+        sleep(SLEEP_BETWEEN_MEASUREMENTS)
 
         duration = finish_time - start_time
-        measurement = (bytes / duration) / 100000
-    except ConnectionError:
+        measurement = (upload_bytes / duration) / 100000
+    except RequestsConnectionError:
         measurement = 0
 
     return measurement
@@ -92,9 +96,9 @@ def upload(bytes):
 def run_speed_test(iterations_list, operation):
     measurements = []
 
-    for index in range(len(iterations_list)):
+    for index, iterations in enumerate(iterations_list):
         size = MEASUREMENT_SIZES[index]
-        iterations = iterations_list[index]
+
         for _ in range(iterations):
             measurements.append(operation(size))
 
